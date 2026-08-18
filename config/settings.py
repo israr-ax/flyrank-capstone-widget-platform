@@ -50,13 +50,22 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True     # public endpoints (config + submission) must accept any customer site
+CORS_ALLOW_CREDENTIALS = False    # JWT goes via Authorization header, not cookies — no credentials needed cross-origin
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024   # 20KB — public form payloads are tiny; oversized body → Django raises 400 automatically
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',   # per-view override for public endpoints
+        'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'submission_ip': '10/min',
+        'submission_widget': '60/min',
+    },
 }
 
 SIMPLE_JWT = {

@@ -3,6 +3,8 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework import status
 
+from submissions.throttles import SubmissionIPThrottle, SubmissionWidgetThrottle
+
 from accounts.models import Tenant
 from widgets.models import Widget
 from submissions.models import Submission
@@ -98,26 +100,20 @@ class HoneypotTests(SubmissionTestBase):
         self.assertEqual(Submission.objects.count(), before)  # but nothing was actually stored
 
 
+
 class RateLimitTests(SubmissionTestBase):
-    @override_settings(REST_FRAMEWORK={
-        **{
-            'DEFAULT_AUTHENTICATION_CLASSES': (
-                'rest_framework_simplejwt.authentication.JWTAuthentication',
-            ),
-            'DEFAULT_PERMISSION_CLASSES': (
-                'rest_framework.permissions.IsAuthenticated',
-            ),
-        },
-        'DEFAULT_THROTTLE_RATES': {'submission_ip': '3/min', 'submission_widget': '100/min'},
-    })
     def test_ip_throttle_returns_429_after_burst(self):
-        for _ in range(3):
+        test_rates = {'submission_ip': '3/min', 'submission_widget': '100/min'}
+
+        with patch.object(SubmissionIPThrottle, 'THROTTLE_RATES', test_rates), \
+             patch.object(SubmissionWidgetThrottle, 'THROTTLE_RATES', test_rates):
+
+            for _ in range(3):
+                response = self.client.post(self.url, data=self.valid_payload(), format="json")
+                self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
             response = self.client.post(self.url, data=self.valid_payload(), format="json")
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        response = self.client.post(self.url, data=self.valid_payload(), format="json")
-        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
-
+            self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
 class GeoFallbackTests(SubmissionTestBase):
     def test_provider_a_fails_provider_b_succeeds(self):

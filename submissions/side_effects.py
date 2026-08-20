@@ -11,3 +11,8 @@ def send_confirmation(submission):
     except Exception as exc:
         logger.error('Side effect failed for submission %s: %s', submission.id, exc)
         return False
+    
+
+# submissions/side_effects.py — temporarily
+# def send_confirmation(submission):
+#     raise Exception("simulated SMTP outage")

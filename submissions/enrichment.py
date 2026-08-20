@@ -23,6 +23,8 @@ def _try_ipapi_co(ip):
     return {'country': body.get('country_name', ''), 'city': body.get('city', ''), 'provider': 'ipapi.co'}
 
 
+# submissions/enrichment.py
+# PROVIDERS = [_try_ipapi_co]   # temporarily removed _try_ip_api to simulate it being down
 
 PROVIDERS = [_try_ip_api, _try_ipapi_co]
 

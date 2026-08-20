@@ -74,6 +74,54 @@ tenant isolation, unauthenticated dashboard rejection.
 - [x] Tenant-scoped dashboard with correct aggregation
 - [x] Successful widget rendering test
 
+## Acceptance Probes (Layer 2 — evaluator will run these live)
+
+### Probe 1 — Valid submission from second-origin page → stored, 2xx, visible in dashboard
+Manual: widget embedded on `http://localhost:5500` (different origin than API's :8000),
+form submitted, response "Thanks! Received." Dashboard immediately showed:
+
+{"total_submissions":1, "submissions_by_widget":[{"widget__title":"Join our newsletter","count":1}]}
+
+Automated: `submissions.tests.CORSPreflightTests`, `dashboard.tests.DashboardTenantIsolationTests`
+
+### Probe 2 — Malformed + oversized payload → clean 4xx, never 500
+Automated: `submissions.tests.InvalidPayloadTests` (missing field, unknown widget_id, unknown
+field → all 400), `submissions.tests.OversizedPayloadTests` (25KB body → 400, not 500)
+
+### Probe 3 — Burst of submissions → 429s appear, normal request right after still succeeds
+Automated: `submissions.tests.RateLimitTests.test_ip_throttle_returns_429_after_burst`
+
+Ran 10 tests in 2.685s
+OK
+
+(3 requests succeed at 201, 4th returns 429 — rate limit patched to 3/min for deterministic testing)
+
+### Probe 4 — Disable geo provider A → provider B enriches. Disable both → still stored, no geo
+Automated: `submissions.tests.GeoFallbackTests.test_provider_a_fails_provider_b_succeeds`,
+`test_all_providers_fail_submission_still_succeeds` — both mock the provider chain directly
+for determinism, per project ground rules (mocked in tests, real APIs for manual/dev only).
+Manual (real infrastructure, not mocked):
+
+Geo provider _try_ip_api failed for 127.0.0.1: reserved range
+Geo provider _try_ipapi_co failed for 127.0.0.1: 429 Client Error: Too Many Requests
+[17/Aug/2026 05:39:48] "POST /api/submissions/ HTTP/1.1" 201 65
+
+
+### Probe 5 — Force email/webhook side effect to throw → submission still succeeds, still stored
+Automated: `submissions.tests.SideEffectFailureTests.test_failing_side_effect_does_not_block_submission`
+(patches `send_confirmation` to raise; asserts 201 still returned). Found and fixed a real gap
+during this test — see BUILDLOG.md Phase 2.
+
+### Probe 6 — Fill honeypot like a bot → silently dropped
+Automated: `submissions.tests.HoneypotTests.test_honeypot_triggered_does_not_create_row`
+(asserts 201 fake-success returned to the bot, but `Submission.objects.count()` unchanged)
+
+## CORS surface split (supports demo step: "disallowed origin")
+Automated: `dashboard.tests.CORSSurfaceTests` — public paths (`/api/submissions/`) carry
+`access-control-allow-origin` for any origin; authenticated paths (`/api/dashboard/stats/`)
+carry none, so a browser blocks cross-origin JS from reading the response even with a
+leaked token
+
 ## Deferred / out of scope (per §7)
 - Docker + PostgreSQL — deferred to end of project by design; SQLite used through development.
 - Multi-role RBAC beyond "owner" — noted as non-goal in DESIGN.md.

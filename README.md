@@ -49,6 +49,10 @@ and `/api/submissions/` are open to any origin (required — customer sites are 
 advance). All other endpoints (auth, CRUD, dashboard) get no CORS headers, so browsers
 block cross-origin JS from reading their responses even with a leaked token.
 
+## Clone Repo
+git clone https://github.com/israr-ax/flyrank-capstone-widget-platform
+cd flyrank-capstone-widget-platform
+
 ## Run it
 
 ```bash

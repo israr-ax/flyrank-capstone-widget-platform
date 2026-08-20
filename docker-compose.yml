@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: flyrank
+      POSTGRES_USER: flyrank
+      POSTGRES_PASSWORD: flyrank_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flyrank"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    command: /app/docker-entrypoint.sh
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-only-change-me}
+      DJANGO_DEBUG: "True"
+      DATABASE_URL: postgres://flyrank:flyrank_dev_password@db:5432/flyrank
+      GEO_PROVIDER_A_URL: http://ip-api.com/json
+      GEO_PROVIDER_B_URL: https://ipapi.co
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

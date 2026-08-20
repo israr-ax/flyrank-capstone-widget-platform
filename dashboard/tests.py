@@ -43,3 +43,32 @@ class DashboardTenantIsolationTests(TestCase):
     def test_unauthenticated_request_rejected(self):
         response = self.client.get('/api/dashboard/stats/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        
+from django.test import TestCase
+from rest_framework.test import APIClient
+
+
+class CORSSurfaceTests(TestCase):
+    """Public embed surfaces must expose CORS headers to any origin.
+    Admin/authenticated surfaces must NOT — proves the split actually works."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_submission_endpoint_has_cors_headers(self):
+        response = self.client.options(
+            '/api/submissions/',
+            HTTP_ORIGIN='http://some-random-customer-site.com',
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD='POST',
+        )
+        self.assertIn('access-control-allow-origin', {k.lower(): v for k, v in response.items()})
+
+    def test_dashboard_endpoint_has_no_cors_headers(self):
+        response = self.client.options(
+            '/api/dashboard/stats/',
+            HTTP_ORIGIN='http://some-random-customer-site.com',
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD='GET',
+        )
+        headers = {k.lower(): v for k, v in response.items()}
+        self.assertNotIn('access-control-allow-origin', headers)

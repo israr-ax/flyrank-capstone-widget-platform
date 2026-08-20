@@ -1,0 +1,66 @@
+name: flyrank-capstone-widget-platform
+description: Embeddable widget & lead-capture platform — Django + DRF backend
+
+run: python manage.py runserver
+
+seed: python manage.py seed_demo
+
+test: python manage.py test
+
+base_url: http://localhost:8000
+
+demo_credentials:
+  username: demoowner
+  password: demopass123
+
+endpoints:
+  # Public (open CORS, no auth)
+  - method: GET
+    path: /widget.js
+    description: Embeddable widget script (served from any origin)
+
+  - method: GET
+    path: /api/widgets/{widget_id}/config/
+    description: Public widget config, cached (ETag + Cache-Control)
+
+  - method: POST
+    path: /api/submissions/
+    description: Public submission endpoint — validated, rate-limited, honeypot-protected, geo-enriched
+
+  # Auth
+  - method: POST
+    path: /api/auth/register/
+    description: Create a new tenant + owner account
+
+  - method: POST
+    path: /api/auth/token/
+    description: Obtain JWT access + refresh tokens
+
+  - method: POST
+    path: /api/auth/token/refresh/
+    description: Refresh JWT access token
+
+  # Authenticated, tenant-scoped (restricted CORS)
+  - method: GET
+    path: /api/widgets/
+    description: List own tenant's widgets (auth required)
+
+  - method: POST
+    path: /api/widgets/
+    description: Create a widget under own tenant (auth required)
+
+  - method: GET
+    path: /api/widgets/{id}/
+    description: Retrieve own widget (404 if another tenant's)
+
+  - method: PATCH
+    path: /api/widgets/{id}/
+    description: Update own widget (404 if another tenant's)
+
+  - method: DELETE
+    path: /api/widgets/{id}/
+    description: Delete own widget (404 if another tenant's)
+
+  - method: GET
+    path: /api/dashboard/stats/
+    description: Tenant-scoped submission counts + geo/widget breakdown

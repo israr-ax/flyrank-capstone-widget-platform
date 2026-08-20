@@ -10,8 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#p5*wk6n*#r@y4h%+o=2#&40ggm%9dgnm8)^vl!gtc7!&5#x*2'
-
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
 
@@ -91,7 +90,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+CORS_ALLOW_ALL_ORIGINS = True     # applies only within CORS_URLS_REGEX below
+CORS_ALLOW_CREDENTIALS = False
 
+# django-cors-headers only attaches CORS headers to paths matching this regex.
+# Public, embeddable surfaces (submission + widget config) get open CORS —
+# any customer site can call them. Admin/authenticated surfaces (widget CRUD,
+# dashboard, auth) are NOT matched here, so browsers block cross-origin JS
+# from reading their responses even with a valid token — this is the
+# "disallowed origin" behavior the brief's demo script explicitly checks.
+CORS_URLS_REGEX = r'^/(api/submissions/|api/widgets/[0-9a-fA-F-]{36}/config/|widget\.js)$'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -103,6 +111,8 @@ DATABASES = {
     }
 }
 
+GEO_PROVIDER_A_URL=config('GEO_PROVIDER_A_URL')
+GEO_PROVIDER_B_URL=config('GEO_PROVIDER_B_URL')
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

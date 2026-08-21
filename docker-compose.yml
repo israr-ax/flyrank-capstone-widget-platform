@@ -15,11 +15,17 @@ services:
     ports:
       - "5432:5432"
 
+  
   web:
     build: .
-    command: /app/docker-entrypoint.sh
+    # command: line hata do — Dockerfile ka ENTRYPOINT already kaafi hai
     volumes:
       - .:/app
+  # web:
+  #   build: .
+  #   command: /app/docker-entrypoint.sh
+  #   volumes:
+  #     - .:/app
     ports:
       - "8000:8000"
     environment:

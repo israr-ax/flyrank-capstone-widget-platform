@@ -55,11 +55,38 @@ cd flyrank-capstone-widget-platform
 
 ## Run it
 
+**Requires Docker Desktop.**
+
+```bash
+cp .env.example .env
+docker compose up
+```
+
+First run builds the image and starts Postgres + Django (a few minutes). Migrations run
+automatically on container start. Once you see `Starting development server at 0.0.0.0:8000`,
+open a second terminal:
+
+```bash
+docker compose exec web python manage.py seed_demo
+```
+
+Server runs at `http://localhost:8000`.
+
+### Running tests
+
+```bash
+docker compose exec web python manage.py test
+```
+
+### Local (non-Docker) development
+
+SQLite works too, if you'd rather not use Docker for day-to-day development:
+
 ```bash
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env            # edit DJANGO_SECRET_KEY at minimum
+cp .env.example .env            # then set DATABASE_URL=sqlite:///db.sqlite3
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver
@@ -119,3 +146,9 @@ config + caching, tenant isolation (widgets + dashboard), successful widget rend
 
 See `BUILDLOG.md` for a phase-by-phase log of where AI helped, what broke, and what was
 corrected.
+
+run: docker compose up
+
+seed: docker compose exec web python manage.py seed_demo
+
+test: docker compose exec web python manage.py test

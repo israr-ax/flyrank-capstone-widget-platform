@@ -48,3 +48,22 @@ Format: what AI generated → what I changed/corrected → why.
   create + dashboard aggregation) proving tenant A can never see, modify, or delete tenant B's data,
   even with a valid JWT. This is the ground-rule ("multi-tenant isolation is non-negotiable") made
   concrete and testable rather than just a code review checklist item.
+
+## Docker + PostgreSQL Migration
+
+- AI generated Dockerfile, docker-compose.yml, docker-entrypoint.sh (wait-for-db loop +
+  migrate + runserver), and DATABASE_URL parsing via dj-database-url.
+- **Bug**: `docker-entrypoint.sh` failed with `no such file or directory` — misleading
+  error. Initially suspected Windows CRLF line endings (a known cross-platform issue) and
+  added `.gitattributes` to force LF — this did NOT fix it.
+- **Actual root cause**, found by inspecting the file's raw bytes inside the container
+  with `od -c`: the file had a **UTF-8 BOM** (`EF BB BF`) at the very start, inserted by
+  PowerShell's default `[System.Text.Encoding]::UTF8` when regenerating the file. The BOM
+  sits before `#!/bin/bash`, so the Linux kernel can't parse the shebang line at all —
+  same misleading "no such file" error as a bad shebang path.
+  Fixed by using `New-Object System.Text.UTF8Encoding($false)` to write the file without
+  a BOM. Confirmed with `od -c` showing the shebang as the literal first bytes.
+- Lesson: "no such file or directory" on a script that visibly exists is a shebang-parsing
+  symptom, not necessarily a missing-file problem — check for both CRLF *and* BOM.
+- Ran the full test suite against real PostgreSQL (not just SQLite) to catch any DB-specific
+  behavior differences — all 22 tests passed unchanged.
